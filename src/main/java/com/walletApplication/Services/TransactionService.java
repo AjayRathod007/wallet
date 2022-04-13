@@ -14,6 +14,7 @@ import com.walletApplication.Dao.TransactionDao;
 import com.walletApplication.Dao.UserWalletDao;
 import com.walletApplication.Dto.TransactionCreationBody;
 import com.walletApplication.Dto.TransactionUpdateEntity;
+import com.walletApplication.Dto.ZomatoTransactionsRequestBody;
 import com.walletApplication.Entities.MerchantWalletEntity;
 import com.walletApplication.Entities.TransactionEntity;
 import com.walletApplication.Entities.UserWalletEntity;
@@ -92,6 +93,49 @@ public class TransactionService {
 		return newTransaction;
 
 	}
+	
+	@Transactional()
+	public TransactionEntity  onlineRestaurantOrder(ZomatoTransactionsRequestBody transaction) throws Exception {
+
+		UserWalletEntity senderWallet;
+		MerchantWalletEntity receiverWallet;
+		senderWallet = userWalletService.getById(transaction.getSenderUserId());
+		logger.info("user sender wallet {}",senderWallet.toString());
+		receiverWallet = merchantWalletService.getById(transaction.getReceiverUserId());
+		logger.info("mer receiver wallet {}",receiverWallet.toString());
+		TransactionEntity newTransaction = createZomatoTransaction(transaction);
+		logger.info("tra created");
+		newTransaction.setTransactionType(TransactionType.MERCHANT.toString());
+		newTransaction = updateZomatoWallet(senderWallet, receiverWallet, newTransaction, transaction);
+		userWalletDao.save(senderWallet);
+		//if(receiverWallet.getMerchantId().equals("8519042337"))
+		  //    throw new Exception("manual exception");
+		transactionDao.save(newTransaction);
+		merchantWalletDao.save(receiverWallet);
+		receiverWallet.setStatus(MerchantStatus.INACTIVE.name());
+		
+		return newTransaction;
+
+	}
+
+	private TransactionEntity updateZomatoWallet(UserWalletEntity senderWallet, MerchantWalletEntity receiverWallet,
+			TransactionEntity newTransaction, ZomatoTransactionsRequestBody transaction) {
+		if (senderWallet.getStatus().equalsIgnoreCase("INACTIVE")
+				|| receiverWallet.getStatus().equalsIgnoreCase("INACTIVE")
+				|| senderWallet.getAmount() < transaction.getAmount()) {
+
+			newTransaction.setStatus(TransactionStatus.FAILED.toString());
+
+		} else {
+			
+			 senderWallet.setAmount(senderWallet.getAmount() - transaction.getAmount());
+			receiverWallet.setAmount(receiverWallet.getAmount() + transaction.getAmount());
+			newTransaction.setStatus(TransactionStatus.RECEIVED.toString());
+		}
+
+		return newTransaction;
+		
+	}
 
 	public TransactionEntity updateWallet(Wallet senderWallet, Wallet receiverWallet, TransactionEntity newTransaction,
 			TransactionCreationBody transaction) {
@@ -121,6 +165,18 @@ public class TransactionService {
 		newTransaction.setAmount(transaction.getAmount());
 		return newTransaction;
 	}
+	
+	public TransactionEntity createZomatoTransaction(ZomatoTransactionsRequestBody transaction) {
+		TransactionEntity newTransaction = new TransactionEntity();
+		newTransaction.setDate(new Date());
+		newTransaction.setSenderUserId(transaction.getSenderUserId());
+		newTransaction.setReceiverUserId(transaction.getReceiverUserId());
+		newTransaction.setAmount(transaction.getAmount());
+		newTransaction.setOrderId(transaction.getOrderId());
+		return newTransaction;
+	}
+	
+	
 
 	public TransactionEntity updateTransaction(int transactionId, TransactionUpdateEntity transaction) {
 		TransactionEntity newTransaction = transactionDao.findById(transactionId);

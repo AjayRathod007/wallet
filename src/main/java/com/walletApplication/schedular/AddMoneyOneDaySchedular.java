@@ -54,8 +54,7 @@ public class AddMoneyOneDaySchedular {
 		int count = 0;
 		long amount = 0;
 
-		List<TransactionEntity> allTransactions = transactionDao.findByDateBetweenAnd(startDate,
-				endDate);
+		List<TransactionEntity> allTransactions = transactionDao.findByDateBetweenAnd(startDate, endDate);
 		List<TransactionEntity> merchantTransactions = new ArrayList<>();
 
 		// filtering all merchant records
@@ -78,9 +77,8 @@ public class AddMoneyOneDaySchedular {
 					.save(new Settelment(amount, count, merchantTransactions.get(i).getReceiverUserId(), "SETTELED"));
 			count = 0;
 			amount = 0;
-			
-			logger.info("schedualed ");
 
+			logger.info("schedualed ");
 		}
 	}
 }

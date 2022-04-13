@@ -18,6 +18,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.walletApplication.Dto.TransactionCreationBody;
 import com.walletApplication.Dto.TransactionUpdateEntity;
+import com.walletApplication.Dto.ZomatoTransactionsRequestBody;
 import com.walletApplication.Entities.TransactionEntity;
 import com.walletApplication.Services.TransactionService;
 import com.walletApplication.Validation.TransactionServiceValidation;
@@ -87,6 +88,22 @@ public class TransactionController {
 			return new ResponseEntity<>(e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
 		}
 	}
+	@PostMapping("/sendmoneytozomato")
+	public int orderTransaction(@RequestBody ZomatoTransactionsRequestBody transaction) {
+		int id=0; 
+		try {
+			TransactionServiceValidation.validateTransactionSenderUserId(transaction.getSenderUserId());
+			TransactionServiceValidation.validateTransactionReceiverUserId(transaction.getReceiverUserId());
+			TransactionServiceValidation.validateTransactionAmount(transaction.getAmount());
+			TransactionEntity  tran = transactionService.onlineRestaurantOrder(transaction);
+			id = tran.getTransactionId();
+		} catch (Exception e) {
+			System.out.println(e.getMessage());	
+		}
+		
+		return id; 
+	}
+	
 	@PostMapping("/registertransaction")
 	public ResponseEntity<?> createTransaction(@RequestBody TransactionCreationBody transaction) {
 		try {
